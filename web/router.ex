@@ -10,14 +10,16 @@ defmodule ReverseProxy.Router do
   end
 
   scope "/", ReverseProxy do
-    pipe_through :browser # Use the default browser stack
-
+    pipe_through :browser
     get "/", PageController, :index
   end
 
-  # When you add your current production API route-by-route
-  # This is where you will setup the Phoenix API to handle it
-  # scope "/api", ReverseProxy do
-  #   pipe_through :api
-  # end
+  scope "v1", ReverseProxy do
+    pipe_through :api
+  end
+
+  scope "api", ReverseProxy do
+    pipe_through :api
+  end
+
 end
