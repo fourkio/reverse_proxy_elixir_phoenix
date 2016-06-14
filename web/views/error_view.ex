@@ -2,13 +2,15 @@ defmodule ReverseProxy.ErrorView do
   use ReverseProxy.Web, :view
 
   def render("404.json", assigns) do
+    host = "http://api.pocketconf.com"
     conn = assigns[:conn]
     params = conn.query_string
-    host = "http://api.pocketconf.com"
+    headers = conn.req_headers
+    cookies = [cookie: ["reverse_proxy=true; log_request=false"]]
     url = host <> conn.request_path <> "?" <> params
     case conn.method do
       "GET" ->
-        case HTTPoison.get(url) do
+        case HTTPoison.get(url, headers, hackney: cookies) do
           {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
             case Poison.decode(body) do
               {:error, _} ->
@@ -20,11 +22,11 @@ defmodule ReverseProxy.ErrorView do
             %{status: 404, message: "Remote Not Found"}
           {:ok, %HTTPoison.Response{status_code: 500}} ->
             %{status: 500, message: "Remote Server Error"}
-          {:error, %HTTPoison.Error{reason: reason}} ->
+          {:error, %HTTPoison.Error{}} ->
             %{status: 500, message: "Remote Server Error"}
         end
       "POST" ->
-        case HTTPoison.post(url, [], %{username: "joeblow"}) do
+        case HTTPoison.post(url, [], headers, hackney: cookies) do
           {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
             case Poison.decode(body) do
               {:error, _} ->
@@ -36,7 +38,7 @@ defmodule ReverseProxy.ErrorView do
             %{status: 404, message: "Remote Not Found"}
           {:ok, %HTTPoison.Response{status_code: 500}} ->
             %{status: 500, message: "Remote Server Error"}
-          {:error, %HTTPoison.Error{reason: reason}} ->
+          {:error, %HTTPoison.Error{}} ->
             %{status: 500, message: "Remote Server Error"}
         end
     end
